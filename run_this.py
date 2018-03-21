@@ -2,6 +2,7 @@
 import gym
 import math
 from brain import DQNAgent
+from collections import deque
 
 #def modify_reward(observation, x_th, theta_th):
 def modify_reward(observation):
@@ -32,12 +33,14 @@ if __name__ == "__main__":
         restore_tf_variables = False,
     )
 
-    for i_episode in range(400):
+    official_scores = deque(maxlen=100)
+    for i_episode in range(4000):
         # Initial observation
         observation = env.reset()
 
         t = 0
         score = 0
+        official_score = 0
         while True:
             env.render()
 
@@ -46,6 +49,7 @@ if __name__ == "__main__":
 
             # Take action
             observation_, reward, done, info = env.step(action)
+            official_score += reward
 
             # Modify the reward
             reward = modify_reward(observation_)
@@ -64,7 +68,14 @@ if __name__ == "__main__":
             t += 1
 
             if done:
-                print 'Ep: {0:3d} steps: {1:3d} score: {2:4.2f}'.format(i_episode, t, score)
+                official_scores.append(official_score)
+                mean = 0.
+                for c in range(0, len(official_scores)):
+                    mean += official_scores[c]
+                mean /= len(official_scores)
+                print 'Ep: {0:3d} steps: {1:3d} score: {2:4.2f} mean {3:3.2f}'.format(i_episode, t, score, mean)
                 break
+        if mean > -110:
+            print 'Solved after', i_episode + 1, 'episodes.'
 
     agent.save('models/model.ckpt')
